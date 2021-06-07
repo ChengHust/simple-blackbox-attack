@@ -4,56 +4,29 @@ from EAreal import ea_real
 from scipy.optimize.optimize import _status_message
 
 
-__all__ = ['slsmof']
+__all__ = ['simba']
 
 _MACHEPS = np.finfo(np.float64).eps
 
 
-def simba_new(func, net, limits, popsize=100, sub_popsize=10, topk=10, maxfev=30000,
-           callback=None, polish=False, init='latinhypercube'):
+def simba_single(net, limits, image, label, maxfev=30000):
 
-    solver = SimBA(func, net, limits, popsize=popsize, sub_popsize=sub_popsize, topk=topk,
-                       maxfev=maxfev, callback=callback, polish=polish, init=init)
-
+    solver = SimBA(net=net, limits=limits, maxfev=maxfev)
+    return solver.simba_single(image, label)
     # Include the net for calculating probabilities
 
 class SimBA(object):
-    def __init__(self, net, func, limits, popsize=100, sub_popsize=10, topk=10, maxfev=30000,
-                 callback=None, polish=False, init='latinhypercube'):
-        self.popsize = popsize
+    def __init__(self, net, limits, maxfev=30000):
         self.maxfev = maxfev
-        self.evaluated = 0
-        self.best = None
         self.pixels = 1
-
         # Parameters of SimBA, if the input is a batch
         self.batch = False 
         self.net = net
         self.epsilon = 0.2
         self.targeted = False
-        
-        
-        
-        self.func = func
-        self.callback = callback
-        self.polish = polish
-
         self.limits = limits
         self.parameter_count = np.size(self.limits, 1)
 
-        self.population_shape = (self.popsize,
-                                 self.parameter_count)
-
-        # initialization
-        if init == 'latinhypercube':
-            decs = self.lhsampling(self.popsize, self.parameter_count) * (
-                self.limits[1] - self.limits[0]) + self.limits[0]
-
-            self.population = (decs, self.func(decs))
-        else:
-            decs = np.random.random((self.popsize, self.parameter_count)) * (
-                self.limits[1] - self.limits[0]) + self.limits[0]
-            self.population = (decs, self.func(decs))
             
         def _perturb(self, image, delta):
             delta = np.array(delta)
@@ -73,7 +46,7 @@ class SimBA(object):
             return adv_images
             
             
-        def simba_single(self, image, label, targeted= False):
+        def simba_single(self, image, label):
             d = self.parameter_count
             diff = np.zeros(d)
             # SimBA assues that d >> self.maxfev
@@ -99,23 +72,3 @@ class SimBA(object):
                         last_prob =  right_prob
             return image
                     
-            
-            
-            
-            
-            
-            
-            
-            
-            
-
-    def solve(self, net):
-        population = self.population
-        self.evaluated += self.popsize
-        self.best = [self.evaluated, np.min(population[1])]
-
-        gen = 1
-        iteration = 0
-        while self.evaluated <= self.maxfev:
-            diff = np.zeros(d)
-            diff[perm[i]] = self.epsilon
